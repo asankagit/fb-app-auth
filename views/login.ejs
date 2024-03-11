@@ -9,71 +9,8 @@
 		<link rel="stylesheet" href="/css/login.css">
 	</head>
 	<body>
-		<script>
-
-			function statusChangeCallback(response) {  // Called with the results from FB.getLoginStatus().
-			  console.log('statusChangeCallback');
-			  console.log('>',response.authResponse.accessToken);                   // The current login status of the person.
-			  if (response.status === 'connected') {   // Logged into your webpage and Facebook.
-				const btn = document.getElementById('token_btn')
-				console.log({ btn })
-				btn.href = `/user-token/${response.authResponse.accessToken}`
-				testAPI();  
-			  } else {                                 // Not logged into your webpage or we are unable to tell.
-				document.getElementById('status').innerHTML = 'Please log ' +
-				  'into this webpage.';
-			  }
-			}
-		  
-		  
-			function checkLoginState() {               // Called when a person is finished with the Login Button.
-			  FB.getLoginStatus(function(response) {   // See the onlogin handler
-				statusChangeCallback(response);
-			  });
-			}
-		  
-		  
-			window.fbAsyncInit = function() {
-			  FB.init({
-				appId      : '780830447251132',
-				cookie     : true,                     // Enable cookies to allow the server to access the session.
-				xfbml      : true,                     // Parse social plugins on this webpage.
-				version    : 'v19.0'           // Use this Graph API version for this call.
-			  });
-		  
-		  
-			  FB.getLoginStatus(function(response) {   // Called after the JS SDK has been initialized.
-				statusChangeCallback(response);        // Returns the login status.
-			  });
-			};
-		   
-			function testAPI() {                      // Testing Graph API after login.  See statusChangeCallback() for when this call is made.
-			  console.log('Welcome!  Fetching your information.... ');
-
-			  FB.api('/me', function(response) {
-				console.log({response })
-				console.log('Successful login for: ' + response.name);
-				document.getElementById('status').innerHTML =
-				  'Thanks for logging in, ' + response.name + '!';
-			  });
-			}
-		  
-		  </script>
-		  
-		  
-		  <!-- The JS SDK Login Button -->
-		  
-		  <fb:login-button scope="public_profile,email" onlogin="checkLoginState();">
-		  </fb:login-button>
-		  
-		  <div id="status">
-		  </div>
-		  
-		  <!-- Load the JS SDK asynchronously -->
-		  <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
-
 		<section class="prompt">
-			<h3>todos</h3>
+			
 			<h1>Sign in</h1>
 			<% if (hasMessages) { %>
 			<section class="messages">
@@ -82,14 +19,11 @@
 				<% }); %>
 			</section>
 			<% } %>
-			<a class="button facebook" href="/login/federated/facebook">Sign in with Facebook</a>
+			<!-- <a class="button facebook" href="/login/federated/facebook">Sign in with Facebook</a> -->
 			<a class="button facebook" href="/oauth2/redirect/facebook">Login</a>
 		</section>
-		<a id="token_btn" >token</a>
+		
 		<footer class="info">
-			<p>Created by <a href="https://www.jaredhanson.me">Jared Hanson</a></p>
-			<p>Part of <a href="https://todomvc.com">TodoMVC</a></p>
-			<p>Authentication powered by <a href="https://www.passportjs.org">Passport</a></p>
 		</footer>
 	</body>
 </html>
