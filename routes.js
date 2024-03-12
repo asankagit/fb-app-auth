@@ -2,25 +2,73 @@ var express = require('express');
 var passport = require('passport');
 var FacebookStrategy = require('passport-facebook').Strategy;
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
+const {callGraphAPI} = require('./utils/graphAPIcalls')
 
 
 require('dotenv').config();
 
+const getPageAccessToken = (accessToken) => {
+  console.log("get page token", accessToken)
+  return new Promise((resolve, reject) => {
+    const https = require('https');
+    const options = {
+      hostname: 'graph.facebook.com',
+      path: '/v19.0/me/accounts?access_token=' + accessToken,
+      method: 'GET'
+    };
+
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => {
+        data += chunk;
+      })
+
+      res.on('end', () => {
+        try {
+          const jsonData = JSON.parse(data);
+          console.log({ jsonData })
+          if (jsonData.data && jsonData.data.length > 0) {
+            resolve(jsonData.data[0].access_token);
+
+          } else {
+            reject(new Error('insuffient permissions'))
+          }
+        } catch (error) {
+          reject(new Error('failed to parse the response' + error.messages));
+        }
+      });
+
+      res.on('error', (error) => {
+        reject(new Error('Error during API request' + error.message))
+      })
+    });
+    req.end();
+
+  });
+  
+}
 
 passport.use(new FacebookStrategy({
   clientID: process.env['FACEBOOK_APP_ID'],
   clientSecret: process.env['FACEBOOK_APP_SECRET'],
   callbackURL: 'https://localhost:8000/auth/facebook/callback',
   state: true
-}, function verify(accessToken, refreshToken, profile, cb) {
+}, async function verify(accessToken, refreshToken, profile, cb) {
   const user = { accessToken, refreshToken, profile }
-  return cb(null, user)
+  try {
+    const pageAccessToken = await getPageAccessToken(accessToken);
+    return cb(null, { accessToken, refreshToken, profile, pageAccessToken })
+  } catch(error) {
+      console.log(error)
+    return   cb(error)
+  }
+  // return cb(null, user)
 }));
 
 passport.serializeUser(function (user, cb) {
   console.log("serialize user")
   process.nextTick(function () {
-    cb(null, { id: user.id, username: user.username, name: user.name });
+    cb(null, { id: user.profile.id, pageAccessToken: user.pageAccessToken, accessToken: user.accessToken});
   });
 });
 
@@ -35,9 +83,10 @@ passport.deserializeUser(function (user, cb) {
 var router = express.Router();
 router.get('/auth/facebook/callback',
   passport.authenticate('facebook', { failureRedirect: '/login' }),
-  async (req, res) => {
+  (req, res) => {
     console.log("user", req.user)
-    res.redirect('/success');
+    // res.send("OK")
+    res.redirect('/api/page-details');
   }
 );
 
@@ -60,6 +109,26 @@ router.post('/logout', function (req, res, next) {
 });
 
 
+router.get('/api/page-details',
+// passport.authenticate('facebook', { failureRedirect: '/login'})
+async (req, res, next) => {
+
+  const pageAccessToken = req.user?.pageAccessToken
+  const userToken = req.user?.accessToken;
+
+  
+  if (req.user) {
+    const resp = await callGraphAPI({
+      accessToken: userToken,  pathUri: 'me?fields=accounts&', method: 'GET'
+    })
+    console.log(resp)
+    res.send(resp)
+  } else {
+    res.send({
+      pageAccessToken, userToken
+    })
+  }
+})
 
 
 module.exports = router;
