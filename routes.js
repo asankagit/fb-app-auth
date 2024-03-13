@@ -118,11 +118,32 @@ async (req, res, next) => {
 
   
   if (req.user) {
-    const resp = await callGraphAPI({
-      accessToken: userToken,  pathUri: 'me?fields=accounts&', method: 'GET'
+    const pageDetails = await callGraphAPI({
+      accessToken: pageAccessToken,  pathUri: 'me?fields=instagram_business_account&', method: 'GET'
     })
-    console.log(resp)
-    res.send(resp)
+    console.log({ pageDetails })
+    const {instagram_business_account } = pageDetails || {}
+    console.log('insta_id', instagram_business_account.id)
+    if (!instagram_business_account) {
+      res.send(resp)
+    }
+    const mediaList = await callGraphAPI({
+      accessToken: pageAccessToken,  pathUri: `${instagram_business_account.id}/media?`, method: 'GET'
+    })
+    if (!Array.isArray(mediaList.data)) {
+      res.send(mediaList)
+    }
+    const promises = mediaList.data.map(({id}) => {
+      return callGraphAPI({
+        accessToken: pageAccessToken,  pathUri: `${id}?fields=caption,media_type,media_url&limit=100&`, method: 'GET'
+      })
+    })
+    const mediaResult = await Promise.allSettled(promises)
+    
+    
+    res.send(mediaResult);
+    console.log(mediaList)
+    
   } else {
     res.send({
       pageAccessToken, userToken
